@@ -1,35 +1,28 @@
 const mongoose = require("mongoose");
 
 const image_Schema = new mongoose.Schema({
-  imageName: {
-    type: String,
-    unique: true,
-  },
+  imageName: { type: String, default: "Memoreis" },
+  imageURL: { type: String, default: "missing" },
 
-  imageDescription: {
-    type: String,
-    default: "image",
-  },
+  backUpDate: { type: String, default: new Date().toISOString() },
 
-  imageDate: {
-    type: String,
-    default: Date.now,
-  },
+  make: { type: String, default: "Memoreis" },
+  model: { type: String, default: "Memories" },
 
-  imageCordinates: {
-    type: [String],
-    default: ["000000000", "0000000"],
-  },
+  dateTimeOriginal: { type: String, default: Date.now },
+  offsetTime: { type: String, default: "Memories" },
 
-  imageStorage: {
-    type: String,
-    default: "Server",
-  },
+  pixelXDimension: { type: String, default: "Missing" },
+  pixelYDimension: { type: String, default: "Missing" },
 
-  imageUrl: {
-    type: String,
-    default: "missing",
-  },
+  gPSLatitudeRef: { type: String, default: "Missing" },
+  gPSLatitude: { type: [[String]], default: ["00000S", "00000N"] },
+
+  gPSLongitudeRef: { type: String, default: "Missing" },
+  gPSLongitude: { type: [[String]], default: ["00000S", "00000N"] },
+
+  gPSAltitudeRef: { type: String, default: "Missing" },
+  gPSAltitude: { type: [[String]], default: ["0000", "0000"] },
 });
 
 const imageModel = mongoose.model("imageModel", image_Schema);
