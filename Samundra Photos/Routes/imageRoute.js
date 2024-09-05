@@ -10,4 +10,6 @@ router
   .route("/upload")
   .post(uploadImage.imageUpload, imageController.createImage);
 
+  router.route('/images').get(imageController.getAllImage);
+
 module.exports = router;

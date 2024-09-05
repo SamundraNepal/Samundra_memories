@@ -1,11 +1,11 @@
 const app = require("./app.js");
-const dontenv = require("dotenv");
-const mongose = require("mongoose");
+const dotenv = require("dotenv");
+const mongoose = require("mongoose"); // Corrected the typo here
 
 //global varibables
-dontenv.config({ path: "./config.env" });
+dotenv.config({ path: "./config.env" });
 
-mongose
+mongoose
   .connect("mongodb://localhost:27017")
   .then(() => {
     console.log("Connection to Data Base is Successfull");

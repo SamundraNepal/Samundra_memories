@@ -1,4 +1,6 @@
 const multer = require("multer");
+
+
 storage = multer.diskStorage({
   destination: function (req, file, cb) {
     //cb means Call Back function
@@ -22,7 +24,9 @@ const upload = multer({ storage: storage, fileFilter: multerFilter }).array(
 
 // Middleware to handle file count
 exports.imageUpload = (req, res, next) => {
+    
   upload(req, res, (err) => {
+    
     if (req.files.length > 4) {
       return res
         .status(400)
@@ -36,4 +40,18 @@ exports.imageUpload = (req, res, next) => {
 
     next();
   });
+
+ /*
+    try {
+        new ExifImage({ image : 'myImage.jpg' }, function (error, exifData) {
+            if (error)
+                console.log('Error: '+error.message);
+            else
+                console.log(exifData); // Do something with your data!
+        });
+    } catch (error) {
+        console.log('Error: ' + error.message);
+    }
+*/
+  
 };

@@ -1,7 +1,15 @@
 const imageModel = require("../Model/imageSchema");
+const ExifReader = require('exifreader');
+
 
 exports.createImage = async (req, res) => {
   try {
+
+    const tags = await ExifReader.load(req.files[0].path)
+    
+   // const imageDate = tags['DateTimeOriginal'].description;
+    
+
     const imagePromiseResolve = req.files.map(async (file) => {
       return await imageModel.create({
         imageName: file.filename,
@@ -10,6 +18,8 @@ exports.createImage = async (req, res) => {
           file.filename
         }`,
       });
+
+
     });
 
     const imageDetails = await Promise.all(imagePromiseResolve);
@@ -18,7 +28,7 @@ exports.createImage = async (req, res) => {
       status: "Success",
       message: "Image Data created",
       imageType: {
-        data: imageDetails,
+        data: tags,
       },
     });
   } catch (err) {
@@ -28,3 +38,12 @@ exports.createImage = async (req, res) => {
     });
   }
 };
+
+exports.getAllImage =async(req,res)=>{
+    try{
+    const imagedata = await imageModel.find();
+    res.status(200).json({status:"Success", result:imagedata.length , datas:{imagedata}})
+  }catch(err){
+    res.status(400).json({status:"Failed", message:"Failed to get the data " + err.message})
+  }
+}

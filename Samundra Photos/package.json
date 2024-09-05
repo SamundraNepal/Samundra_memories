@@ -11,9 +11,10 @@
   "keywords": [],
   "dependencies": {
     "dotenv": "^16.4.5",
-    "exif": "^0.6.0",
+    "exifreader": "^4.23.3",
     "express": "^4.19.2",
-    "mongoose": "^8.6.0",
+    "mongodb": "^6.8.0",
+    "mongoose": "^8.6.1",
     "multer": "^1.4.5-lts.1",
     "nodemon": "^3.1.4"
   }
