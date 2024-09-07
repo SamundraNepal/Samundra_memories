@@ -6,9 +6,6 @@ storage = multer.diskStorage({
     cb(null, "Storage/Videos/");
   },
 
-
-  
-
   filename: async function (req, file, cb) {
     const ext = file.mimetype.split("/")[1];
     cb(null, `SAM_${Date.now()}.${ext}`);

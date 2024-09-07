@@ -7,13 +7,13 @@ const path = require("path");
 const imagesRoute = require("./Routes/imageRoute");
 const videosRoute = require("./Routes/videoRoute");
 
+app.use(express.json()); // Middleware to parse incoming JSON bodies
 
 //allows access to this path files
 app.use(
   "/Storage/Images",
   express.static(path.join(__dirname, "Storage/Images"))
 );
-
 
 //allows access to this path files
 app.use(
@@ -23,6 +23,5 @@ app.use(
 
 app.use("/v1/memories/images", imagesRoute);
 app.use("/v1/memories/videos", videosRoute);
-
 
 module.exports = app;
