@@ -1,4 +1,3 @@
-const { model } = require("mongoose");
 const imageModel = require("../Model/imageSchema");
 const ExifReader = require("exifreader");
 
@@ -12,70 +11,61 @@ const readPhotoData = async function (req) {
 const readImageMetaData = async function (req) {
   const tag = await readPhotoData(req);
 
-  const properties = tag.map((el) => ({
-    Make: el.Make,
-    Model: el.Model,
-    DateTimeOriginal: el.DateTimeOriginal,
-    OffsetTime: el.OffsetTime,
-    PixelXDimension: el.PixelXDimension,
-    PixelYDimension: el.PixelYDimension,
-    GPSLatitudeRef: el.GPSLatitudeRef,
-    GPSLatitude: el.GPSLatitude,
-    GPSLongitudeRef: el.GPSLongitudeRef,
-    GPSLongitude: el.GPSLongitude,
-    GPSAltitudeRef: el.GPSAltitudeRef,
-    GPSAltitude: el.GPSAltitude,
-  }));
+  
+  const imageMetaDataProcesssing = tag.map( async (metaData) => ({
 
-  return properties;
-};
 
-exports.createImage = async (req, res) => {
-  try {
-    const imageMetaData = await readImageMetaData(req);
+      make: metaData.Make?.description,
+      model: metaData.Model?.description,
+      dateTimeOriginal: metaData.DateTimeOriginal?.description,
+      offsetTime: metaData.OffsetTime?.description,
+      
+      pixelXDimension: metaData.PixelXDimension?.description,
+      pixelYDimension: metaData.PixelYDimension?.description,
 
+      gPSLatitudeRef: metaData.GPSLatitudeRef?.description,
+      gPSLatitude: metaData.GPSLatitude?.value,
+      
+      gPSLongitudeRef: metaData.GPSLongitudeRef?.description,
+      gPSLongitude: metaData.GPSLongitude?.value,
+      
+      gPSAltitudeRef: metaData.GPSAltitudeRef?.description,
+      gPSAltitude: metaData.GPSAltitude?.value,
+    
+    }));
+
+    
     const imageDataProcessing = req.files.map(async (file) => {
       return {
         imageName: file.filename,
+        imageSize:file.size,
         imageURL: `${req.protocol}://${req.get("host")}/${file.destination}/${
           file.filename
         }`,
       };
     });
 
-    const imageMeteDataProcessing = imageMetaData.map(async (metaData) => {
-      return {
-        make: metaData.Make.description,
-        model: metaData.Model.description,
-        dateTimeOriginal: metaData.DateTimeOriginal.description,
-        offsetTime: metaData.OffsetTime.description,
-
-        pixelXDimension: metaData.PixelXDimension.description,
-        pixelYDimension: metaData.PixelYDimension.description,
-
-        gPSLatitudeRef: metaData.GPSLatitudeRef.description,
-        gPSLatitude: metaData.GPSLatitude.value,
-
-        gPSLongitudeRef: metaData.GPSLongitudeRef.description,
-        gPSLongitude: metaData.GPSLongitude.value,
-
-        gPSAltitudeRef: metaData.GPSAltitudeRef.description,
-        gPSAltitude: metaData.GPSAltitude.value,
-      };
-    });
-
-    //wait for all the promises
-    const imageDataProcesssed = await Promise.all(imageDataProcessing);
-    const imageMetaDataProcesssed = await Promise.all(imageMeteDataProcessing);
-
+    
+        //wait for all the promises
+   const imageDataProcesssed = await Promise.all(imageDataProcessing);
+   const imageMetaDataProcesssed = await Promise.all(imageMetaDataProcesssing);
     // Combine the data
-    const combinedData = imageDataProcesssed.map((image, index) => ({
+    return combinedData = imageDataProcesssed.map((image, index) => ({
       ...image,
       ...imageMetaDataProcesssed[index],
     }));
 
+    
+};
+
+exports.createImage = async (req, res) => {
+  try {
+
+    //gets the processed data from the reqs
+    const imageMetaData = await readImageMetaData(req);
+
     // Database Created
-    const createData = await imageModel.create(combinedData);
+    const createData = await imageModel.create(imageMetaData);
 
     res.status(200).json({
       status: "Success",
@@ -94,7 +84,7 @@ exports.createImage = async (req, res) => {
 
 exports.getAllImage = async (req, res) => {
   try {
-    const imagedata = await imageModel.find();
+    const imagedata = await imageModel.find({isActive:true});
     res.status(200).json({
       status: "Success",
       result: imagedata.length,
@@ -107,3 +97,39 @@ exports.getAllImage = async (req, res) => {
     });
   }
 };
+
+exports.deleteImage = async(req , res) =>{
+  
+  try{
+
+    const imageId = req.params.id;
+    if(!imageId)
+    {
+      res.status(400).json({status:"Failed", message:"image does not exits"} + err.message);
+
+    }
+    const deleteImageId = await imageModel.findByIdAndUpdate(imageId,{isActive:false})
+    res.status(200).json({status:"Success", message:"image delete successfull",deleteImageId});
+  } catch(err){
+    res.status(400).json({status:"Failed", message:"Failed to delete the image"} + err.message);
+
+  }
+
+}
+
+exports.restoreImage = async(req,res)=>{
+  try{
+
+    const imageId = req.params.id;
+    if(!imageId)
+    {
+      res.status(400).json({status:"Failed", message:"image does not exits"} + err.message);
+
+    }
+    const deleteImageId = await imageModel.findByIdAndUpdate(imageId,{isActive:true})
+    res.status(200).json({status:"Success", message:"image delete successfull",deleteImageId});
+  } catch(err){
+    res.status(400).json({status:"Failed", message:"Failed to delete the image"} + err.message);
+
+  }
+}

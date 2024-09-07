@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
+
 
 //Inheritance
-const uploadImage = require("../Utils/storage");
+const uploadImage = require("../Utils/ImageMetaDataMulterstorage");
 const imageController = require("../ModelViewController/Controller/imageController");
 
 router
@@ -11,5 +11,7 @@ router
   .post(uploadImage.imageUpload, imageController.createImage);
 
   router.route('/images').get(imageController.getAllImage);
+
+  router.route('/deleteImage/:id').patch(imageController.deleteImage);
 
 module.exports = router;

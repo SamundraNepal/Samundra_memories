@@ -12,6 +12,7 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "exifreader": "^4.23.3",
+    "exiftool-vendored": "^28.2.1",
     "express": "^4.19.2",
     "mongodb": "^6.8.0",
     "mongoose": "^8.6.1",
