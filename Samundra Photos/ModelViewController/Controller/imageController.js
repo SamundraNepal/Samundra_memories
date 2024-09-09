@@ -3,6 +3,8 @@ const ExifReader = require("exifreader");
 const resHandler = require("../../Utils/Error Handler/errorHandler");
 const fs = require("fs");
 
+/////////////////////////////////////change the imagemodel look at the createimage you will understand
+
 const readPhotoData = async function (req) {
   const tags = req.files.map(async (file) => {
     return await ExifReader.load(file.path);
@@ -57,8 +59,11 @@ exports.createImage = async (req, res) => {
     //gets the processed data from the reqs
     const imageMetaData = await readImageMetaData(req);
 
+    //creating the image schema based on the user id
+    const userRelatedImageSchema = await imageModel(req.user.id);
+
     // Database Created
-    const createData = await imageModel.create(imageMetaData);
+    const createData = await userRelatedImageSchema.create(imageMetaData);
     resHandler(res, 200, "Success", { result: createData });
   } catch (err) {
     resHandler(res, 400, "Failed", "Failed to upload image " + err.message);
@@ -67,7 +72,9 @@ exports.createImage = async (req, res) => {
 
 exports.getAllImage = async (req, res) => {
   try {
-    const imagedata = await imageModel.find({ isActive: true });
+    const createdUserImageSchema = imageModel(req.user.id);
+
+    const imagedata = await createdUserImageSchema.find({ isActive: true });
 
     if (imagedata.length < 1) {
       return resHandler(res, 200, "Success", "No data avaliable");

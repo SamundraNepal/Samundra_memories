@@ -3,7 +3,7 @@ const multer = require("multer");
 storage = multer.diskStorage({
   destination: function (req, file, cb) {
     //cb means Call Back function
-    cb(null, "Storage/Videos/");
+    cb(null, `Storage/${req.user.id}/Videos/`);
   },
 
   filename: async function (req, file, cb) {

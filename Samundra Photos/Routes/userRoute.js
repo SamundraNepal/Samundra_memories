@@ -1,14 +1,12 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
 //inheritance
 
-const authController = require('../ModelViewController/Controller/authController');
+const authController = require("../ModelViewController/Controller/authController");
 
-router.route('/signUp').post(authController.singUpUser);
+router.route("/signUp").post(authController.singUpUser);
 
-router.route('/logIn').post(authController.logInUser);
-
-
+router.route("/logIn").post(authController.logInUser);
 
 module.exports = router;
