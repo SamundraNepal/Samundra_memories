@@ -1,7 +1,10 @@
 const multer = require("multer");
 
+
 storage = multer.diskStorage({
   destination: function (req, file, cb) {
+
+    console.log( "here " , req.user);
     //cb means Call Back function
     cb(null, "Storage/Images/");
   },

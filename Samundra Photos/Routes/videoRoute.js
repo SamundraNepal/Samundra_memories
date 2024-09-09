@@ -4,17 +4,18 @@ const router = express.Router();
 //inHeritance
 const uploadVideo = require("../Utils/videosMetaDataMulterStorage");
 const videoController = require("../ModelViewController/Controller/videoController");
+const authController = require('../ModelViewController/Controller/authController');
 
 router
   .route("/upload")
-  .post(uploadVideo.videoUpload, videoController.createVideo);
+  .post(authController.protect,uploadVideo.videoUpload, videoController.createVideo);
 
-router.route("/videos").get(videoController.getAllVideo);
+router.route("/videos").get(authController.protect,videoController.getAllVideo);
 
-router.route("/deleteVideo/:id").patch(videoController.softDeleteVideo);
+router.route("/deleteVideo/:id").patch(authController.protect,videoController.softDeleteVideo);
 
-router.route("/restoreVideo/:id").patch(videoController.restoreVideo);
+router.route("/restoreVideo/:id").patch(authController.protect,videoController.restoreVideo);
 
-router.route("/hardDeleteVideo/:id").delete(videoController.hardDeleteVideo);
+router.route("/hardDeleteVideo/:id").delete(authController.protect,videoController.hardDeleteVideo);
 
 module.exports = router;

@@ -6,6 +6,7 @@ const path = require("path");
 //inheritance files
 const imagesRoute = require("./Routes/imageRoute");
 const videosRoute = require("./Routes/videoRoute");
+const userRoutes = require('./Routes/userRoute');
 
 app.use(express.json()); // Middleware to parse incoming JSON bodies
 
@@ -23,5 +24,7 @@ app.use(
 
 app.use("/v1/memories/images", imagesRoute);
 app.use("/v1/memories/videos", videosRoute);
+app.use("/v1/memories", userRoutes);
+
 
 module.exports = app;
