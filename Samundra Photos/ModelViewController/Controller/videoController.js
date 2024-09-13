@@ -45,8 +45,11 @@ const readVideoMetaData = async function (req) {
 
 exports.createVideo = async (req, res) => {
   try {
-    const videoMetaData = await readVideoMetaData(req);
-    const createData = await video_Schema.create(videoMetaData);
+
+       //creating the image schema based on the user id
+       const userRelatedVideoSchema = await video_Schema(req.user.id); 
+     const videoMetaData = await readVideoMetaData(req);
+      const createData = await userRelatedVideoSchema.create(videoMetaData);
     resHandler(res, 200, "Success", createData);
   } catch (err) {
     resHandler(res, 400, "Success", "Failed to create video " + err.message);
@@ -55,7 +58,10 @@ exports.createVideo = async (req, res) => {
 
 exports.getAllVideo = async (req, res) => {
   try {
-    const videodata = await video_Schema.find({ isActive: true });
+
+    const createdUserVideoSchema = await video_Schema(req.user.id); 
+
+    const videodata = await createdUserVideoSchema.find({ isActive: true });
     if (videodata.length < 1) {
       return resHandler(res, 200, "Success", "No data avaliable");
     }
@@ -70,13 +76,16 @@ exports.getAllVideo = async (req, res) => {
 
 exports.softDeleteVideo = async (req, res) => {
   try {
+
+    const createdUserVideoSchema = await video_Schema(req.user.id); 
+
     // Check if videoId is provided
     const videoId = req.params.id;
     if (videoId.length < 12) {
       return resHandler(res, 400, "Failed", "Video ID is required");
     }
 
-    const deletevideoId = await video_Schema.findByIdAndUpdate(videoId, {
+    const deletevideoId = await createdUserVideoSchema.findByIdAndUpdate(videoId, {
       isActive: false,
     });
 
@@ -94,11 +103,13 @@ exports.softDeleteVideo = async (req, res) => {
 
 exports.hardDeleteVideo = async (req, res) => {
   try {
+    const createdUserVideoSchema = await video_Schema(req.user.id); 
+
     const videoID = req.params.id;
     if (!videoID) {
       return resHandler(res, 400, "Failed", "Video ID is required");
     }
-    const deleteVideoId = await video_Schema.findByIdAndDelete(videoID);
+    const deleteVideoId = await createdUserVideoSchema.findByIdAndDelete(videoID);
 
     if (!deleteVideoId) {
       return resHandler(res, 400, "Failed", "Video does not exits");
@@ -126,13 +137,15 @@ exports.hardDeleteVideo = async (req, res) => {
 
 exports.restoreVideo = async (req, res) => {
   try {
+    const createdUserVideoSchema = await video_Schema(req.user.id); 
+
     const videoID = req.params.id;
 
     if (videoID.length < 12) {
       return resHandler(res, 400, "Failed", "Video ID is required");
     }
 
-    const deletevideoID = await video_Schema.findByIdAndUpdate(videoID, {
+    const deletevideoID = await createdUserVideoSchema.findByIdAndUpdate(videoID, {
       isActive: true,
     });
 

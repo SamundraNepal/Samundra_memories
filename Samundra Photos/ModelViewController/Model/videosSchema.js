@@ -28,10 +28,15 @@ const video_Schema = new mongoose.Schema({
 video_Schema.pre("save", function (next) {
   this.videoFileSize =
     (parseFloat(this.videoFileSize / 1024) / 1024).toFixed(2) + " mb";
-
   next();
 });
 
-const videoModel = mongoose.model("videoModel", video_Schema);
+
+
+const videoModel = function (userId) {
+  return mongoose.model(`videoModel_schema/${userId}`, video_Schema);
+};
+
+
 
 module.exports = videoModel;

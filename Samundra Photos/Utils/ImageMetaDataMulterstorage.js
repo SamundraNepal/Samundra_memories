@@ -2,9 +2,9 @@ const multer = require("multer");
 
 storage = multer.diskStorage({
   destination: async function (req, file, cb) {
-    console.log(req.user.id);
     //cb means Call Back function
     cb(null, `Storage/${req.user.id}/Images/`);
+
   },
 
   filename: async function (req, file, cb) {

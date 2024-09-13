@@ -3,8 +3,6 @@ const ExifReader = require("exifreader");
 const resHandler = require("../../Utils/Error Handler/errorHandler");
 const fs = require("fs");
 
-/////////////////////////////////////change the imagemodel look at the createimage you will understand
-
 const readPhotoData = async function (req) {
   const tags = req.files.map(async (file) => {
     return await ExifReader.load(file.path);
@@ -95,12 +93,15 @@ exports.getAllImage = async (req, res) => {
 
 exports.softDeleteImage = async (req, res) => {
   try {
+
+    const createdUserImageSchema = imageModel(req.user.id);
+
     const imageId = req.params.id;
     if (!imageId) {
       return resHandler(res, 400, "Failed", "Image ID is required");
     }
 
-    const deleteImageId = await imageModel.findByIdAndUpdate(imageId, {
+    const deleteImageId = await createdUserImageSchema.findByIdAndUpdate(imageId, {
       isActive: false,
     });
 
@@ -115,11 +116,12 @@ exports.softDeleteImage = async (req, res) => {
 
 exports.hardDeleteImage = async (req, res) => {
   try {
+    const createdUserImageSchema = imageModel(req.user.id);
     const imageId = req.params.id;
     if (!imageId) {
       return resHandler(res, 400, "Failed", "Image ID is required");
     }
-    const deleteImageId = await imageModel.findByIdAndDelete(imageId);
+    const deleteImageId = await createdUserImageSchema.findByIdAndDelete(imageId);
 
     if (!deleteImageId) {
       return resHandler(res, 400, "Failed", "Image does not exits");
@@ -147,11 +149,12 @@ exports.hardDeleteImage = async (req, res) => {
 
 exports.restoreImage = async (req, res) => {
   try {
+    const createdUserImageSchema = imageModel(req.user.id);
     const imageId = req.params.id;
     if (!imageId) {
       resHandler(res, 400, "Failed", "Invalid id");
     }
-    const deleteImageId = await imageModel.findByIdAndUpdate(imageId, {
+    const deleteImageId = await createdUserImageSchema.findByIdAndUpdate(imageId, {
       isActive: true,
     });
 
