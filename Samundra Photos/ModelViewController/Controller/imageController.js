@@ -93,7 +93,6 @@ exports.getAllImage = async (req, res) => {
 
 exports.softDeleteImage = async (req, res) => {
   try {
-
     const createdUserImageSchema = imageModel(req.user.id);
 
     const imageId = req.params.id;
@@ -101,9 +100,12 @@ exports.softDeleteImage = async (req, res) => {
       return resHandler(res, 400, "Failed", "Image ID is required");
     }
 
-    const deleteImageId = await createdUserImageSchema.findByIdAndUpdate(imageId, {
-      isActive: false,
-    });
+    const deleteImageId = await createdUserImageSchema.findByIdAndUpdate(
+      imageId,
+      {
+        isActive: false,
+      }
+    );
 
     if (!deleteImageId) {
       return resHandler(res, 400, "Failed", "ID does not exits");
@@ -121,7 +123,9 @@ exports.hardDeleteImage = async (req, res) => {
     if (!imageId) {
       return resHandler(res, 400, "Failed", "Image ID is required");
     }
-    const deleteImageId = await createdUserImageSchema.findByIdAndDelete(imageId);
+    const deleteImageId = await createdUserImageSchema.findByIdAndDelete(
+      imageId
+    );
 
     if (!deleteImageId) {
       return resHandler(res, 400, "Failed", "Image does not exits");
@@ -154,9 +158,12 @@ exports.restoreImage = async (req, res) => {
     if (!imageId) {
       resHandler(res, 400, "Failed", "Invalid id");
     }
-    const deleteImageId = await createdUserImageSchema.findByIdAndUpdate(imageId, {
-      isActive: true,
-    });
+    const deleteImageId = await createdUserImageSchema.findByIdAndUpdate(
+      imageId,
+      {
+        isActive: true,
+      }
+    );
 
     if (!deleteImageId) {
       resHandler(res, 400, "Failed", "Image does not exits");
