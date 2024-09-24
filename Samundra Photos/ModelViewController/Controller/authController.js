@@ -58,6 +58,7 @@ exports.singUpUser = async (req, res, next) => {
     const createUserData = await userSchema.create(userData);
 
     const token = createToken({ id: createUserData._id });
+    
 
     if (req.body.role !== "admin") {
       /// notify the admin for account approval
@@ -83,9 +84,13 @@ exports.singUpUser = async (req, res, next) => {
 
     //create indiviual user folder
     await createUserFolder(createUserData.id);
+
+  
     resHandler(res, 200, "Success", {
-      message: "waiting for approval" /*token*/,
+      message: "Upload image", token
     });
+
+    next();
   } catch (err) {
     resHandler(res, 400, "Failed", "Failed to create the user " + err.message);
   }
@@ -94,11 +99,15 @@ exports.singUpUser = async (req, res, next) => {
 exports.uploadUserImage = async (req, res) => {
   try {
     const imageFile = req.file;
-    console.log(imageFile);
+    const decodedUserId = jwt.verify(req.params.id , process.env.JWT_SECRET_KEY);
 
-    resHandler(res, 200, "Success", {
-      message: imageFile /*token*/,
-    });
+     const avatarUrl = `${req.protocol}://${req.get('host')}/${imageFile.path}}`;
+     console.log(avatarUrl);
+
+    const findUser = await userSchema.findByIdAndUpdate(decodedUserId.id.id , {imageLink:avatarUrl})
+     await findUser.save({validateBeforeSave:false});
+
+      resHandler(res, 200, "Success", {message:"Account Created. Your Account need admin approval", findUser});
   } catch (err) {
     resHandler(
       res,

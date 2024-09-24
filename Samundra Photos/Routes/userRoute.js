@@ -13,9 +13,10 @@ router
   .route("/logIn")
   .post(authController.logInUser, authController.verifyUser);
 
+  //for single photo upload
 router
-  .route("/uploadImage")
-  .post(avaterUpload.uploadUserPhoto, authController.uploadUserImage);
+  .route("/uploadImage/:id")
+  .post(avaterUpload.uploadUserPhoto , authController.uploadUserImage);
 
 router
   .route("/user/userData")

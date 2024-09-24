@@ -1,12 +1,13 @@
 const multer = require("multer");
+const jwt = require("jsonwebtoken");
+const userSchema = require("../ModelViewController/Model/userSchema");
+
 
 storage = multer.diskStorage({
   destination: async function (req, file, cb) {
-    //cb means Call Back function
-    if (!req.user) {
-      return console.log("No user exits");
-    }
-    cb("null", `Storage/${req.user.id}/Images/`);
+    const token =  req.params.id;
+    const decodedUserId = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    cb(null, `Storage/${decodedUserId.id.id}/Images/`);
   },
 
   filename: async function (req, file, cb) {
@@ -23,4 +24,7 @@ const multerFilter = (req, file, cb) => {
 const upload = multer({ storage: storage, fileFilter: multerFilter }).single(
   "photo"
 );
+
+
+
 exports.uploadUserPhoto = upload;
