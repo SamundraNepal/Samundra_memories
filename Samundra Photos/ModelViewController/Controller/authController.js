@@ -58,7 +58,6 @@ exports.singUpUser = async (req, res, next) => {
     const createUserData = await userSchema.create(userData);
 
     const token = createToken({ id: createUserData._id });
-    
 
     if (req.body.role !== "admin") {
       /// notify the admin for account approval
@@ -85,9 +84,9 @@ exports.singUpUser = async (req, res, next) => {
     //create indiviual user folder
     await createUserFolder(createUserData.id);
 
-  
     resHandler(res, 200, "Success", {
-      message: "Upload image", token
+      message: "Upload image",
+      token,
     });
 
     next();
@@ -99,15 +98,20 @@ exports.singUpUser = async (req, res, next) => {
 exports.uploadUserImage = async (req, res) => {
   try {
     const imageFile = req.file;
-    const decodedUserId = jwt.verify(req.params.id , process.env.JWT_SECRET_KEY);
+    const decodedUserId = jwt.verify(req.params.id, process.env.JWT_SECRET_KEY);
 
-     const avatarUrl = `${req.protocol}://${req.get('host')}/${imageFile.path}}`;
-     console.log(avatarUrl);
+    const avatarUrl = `${req.protocol}://${req.get("host")}/${imageFile.path}}`;
+    console.log(avatarUrl);
 
-    const findUser = await userSchema.findByIdAndUpdate(decodedUserId.id.id , {imageLink:avatarUrl})
-     await findUser.save({validateBeforeSave:false});
+    const findUser = await userSchema.findByIdAndUpdate(decodedUserId.id.id, {
+      imageLink: avatarUrl,
+    });
+    await findUser.save({ validateBeforeSave: false });
 
-      resHandler(res, 200, "Success", {message:"Account Created. Your Account need admin approval", findUser});
+    resHandler(res, 200, "Success", {
+      message: "Account Created. Your Account need admin approval",
+      findUser,
+    });
   } catch (err) {
     resHandler(
       res,
@@ -207,6 +211,7 @@ exports.verifyUser = async (req, res) => {
     const userLogIn = await userSchema.findOne({ email: req.body.email });
     //create OTP
     const userInputOTP = req.body.OTP;
+    console.log(userInputOTP);
     if (!userInputOTP) {
       const OTP = userLogIn.createOneTimePasswordVerification();
       await userLogIn.save({ validateBeforeSave: false });
@@ -231,17 +236,22 @@ exports.verifyUser = async (req, res) => {
         `A verification code have been sent to your email ${userLogIn.email}`
       );
     }
+
     //Verify OTP
     try {
       const hashOTP = crypto
         .createHash("sha256")
         .update(userInputOTP)
         .digest("hex");
-      if (
-        hashOTP != userLogIn.oneTimeVerificationToken &&
-        Date.now() < userLogIn.oneTimeVerificationTokenExpire
-      )
-        return resHandler(res, 400, "failed", "invalid or Expired OTP");
+      // Check if the hashed OTP matches
+      if (hashOTP !== userLogIn.oneTimeVerificationToken) {
+        return resHandler(res, 400, "failed", "Invalid OTP");
+      }
+
+      // Check if the OTP is expired
+      if (Date.now() > userLogIn.oneTimeVerificationTokenExpire) {
+        return resHandler(res, 400, "failed", "Expired OTP");
+      }
     } catch (err) {
       return resHandler(res, 400, "failed", "failed to verify OTP");
     }
@@ -260,6 +270,7 @@ exports.verifyUser = async (req, res) => {
       });
     }
 
+    /*
     // Send JWT token in HTTP-only cookie
     res.cookie("jwt", token, {
       httpOnly: true, // Prevent access by JavaScript
@@ -268,9 +279,13 @@ exports.verifyUser = async (req, res) => {
       sameSite: "None", // or 'Lax' based on your needs
     });
 
-    console.log("Cookie set successfully");
+    */
 
     resHandler(res, 200, "Success", { message: "Logged in", token });
+
+    userLogIn.oneTimeVerificationToken = null;
+    userLogIn.oneTimeVerificationTokenExpire = null;
+    await userLogIn.save({ validateBeforeSave: false });
   } catch (err) {
     resHandler(res, 400, "failed", "Failed to verify the user " + err.message);
   }
@@ -341,15 +356,15 @@ exports.forgotPassword = async (req, res) => {
     const resetToken = identifyUser.createResetPasswordToken();
     await identifyUser.save({ validateBeforeSave: false });
 
-    const URL = `${req.protocal}://${req.get(
+    const URL = `${req.protocol}://${req.get(
       "host"
     )}/v1/memories/resetPassword/${resetToken}`;
 
     try {
       await sendEmail({
         to: identifyUser.email,
-        subject: "Reset Link",
-        text: `Valid for 10 mins password reset link:${URL}`,
+        subject: "Reset Number",
+        text: `Valid for 10 mins password reset number:${resetToken}`,
       });
       resHandler(
         res,

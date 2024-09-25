@@ -6,7 +6,7 @@ const { type } = require("os");
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: [true, "Must have First name"] },
   lastName: { type: String, required: [true, "Must have Last name"] },
-  imageLink: { type: String, default:"missing" },
+  imageLink: { type: String, default: "missing" },
   password: {
     type: String,
     required: [true, "Must have a password"],
@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
   email: { type: String, required: [true, "Must have email"], unique: true },
-  isActive: { type: Boolean, default: true, select: false },
+  isActive: { type: Boolean, default: true },
   role: {
     type: String,
     enum: ["admin", "user"],
@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
 
-  isApproved: { type: Boolean, default: false, select: false },
+  isApproved: { type: Boolean, default: false },
 
   oneTimeVerificationToken: { type: String, select: false },
   oneTimeVerificationTokenExpire: { type: String, select: false },
@@ -59,7 +59,7 @@ userSchema.methods.passwordMatch = async function (
 };
 
 userSchema.methods.createResetPasswordToken = function () {
-  const resetToken = crypto.randomBytes(32).toString("hex");
+  const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
   this.passwordResetToken = crypto
     .createHash("sha256")
     .update(resetToken)
@@ -71,7 +71,7 @@ userSchema.methods.createResetPasswordToken = function () {
 };
 
 userSchema.methods.createOneTimePasswordVerification = function () {
-  const OTP = crypto.randomBytes(6).toString("hex");
+  const OTP = Math.floor(100000 + Math.random() * 900000).toString();
   this.oneTimeVerificationToken = crypto
     .createHash("sha256")
     .update(OTP)
