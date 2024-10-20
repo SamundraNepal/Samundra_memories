@@ -1,6 +1,5 @@
 const multer = require("multer");
 const jwt = require("jsonwebtoken");
-const userSchema = require("../ModelViewController/Model/userSchema");
 
 storage = multer.diskStorage({
   destination: async function (req, file, cb) {

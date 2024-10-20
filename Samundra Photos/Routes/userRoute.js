@@ -1,45 +1,61 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
 
 //upload avatar
 
 //inheritance
-const authController = require("../ModelViewController/Controller/authController");
-const avaterUpload = require("../Utils/uploadAvatar");
+const authController = require('../ModelViewController/Controller/authController');
+const avaterUpload = require('../Utils/uploadAvatar');
 
-router.route("/signUp").post(authController.singUpUser);
+router.route('/signUp').post(authController.singUpUser);
 
 router
-  .route("/logIn")
+  .route('/logIn')
   .post(authController.logInUser, authController.verifyUser);
 
-  //for single photo upload
+//for single photo upload
 router
-  .route("/uploadImage/:id")
-  .post(avaterUpload.uploadUserPhoto , authController.uploadUserImage);
+  .route('/uploadImage/:id')
+  .post(avaterUpload.uploadUserPhoto, authController.uploadUserImage);
 
 router
-  .route("/user/userData")
+  .route('/user/userData')
   .get(authController.protect, authController.getUserData);
 
 router
-  .route("/user/deleteUser")
+  .route('/user/deleteUser')
   .patch(authController.protect, authController.deleteUsers);
 
 router
-  .route("/user/updatePassword")
+  .route('/user/updatePassword')
   .post(authController.protect, authController.updatePassword);
 
 router
-  .route("/users/admin/:id")
+  .route('/users/admin/approval/:id')
   .patch(
     authController.protect,
-    authController.restrictTo("admin"),
+    authController.restrictTo('admin'),
     authController.approveAccount
   );
 
-router.route("/user/forgotPassword").post(authController.forgotPassword);
+router
+  .route('/users/admin/reject/:id')
+  .post(
+    authController.protect,
+    authController.restrictTo('admin'),
+    authController.rejectAccount
+  );
 
-router.route("/resetPassword/:id").post(authController.resetPassword);
+router
+  .route('/users/admin/data')
+  .get(
+    authController.protect,
+    authController.restrictTo('admin'),
+    authController.getApprovaldata
+  );
+
+router.route('/user/forgotPassword').post(authController.forgotPassword);
+
+router.route('/resetPassword/:id').post(authController.resetPassword);
 
 module.exports = router;

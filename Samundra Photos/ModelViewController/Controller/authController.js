@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const sharp = require('sharp');
+
 
 //inheritance
 const sendEmail = require("../../Utils/emailHandler");
@@ -55,11 +57,21 @@ exports.singUpUser = async (req, res, next) => {
       return resHandler(res, 400, "Failed", "Email already exists");
     }
 
+    if(userData.adminCode === process.env.SECRET_ADMIN_CODE)
+      {
+        userData.role ="admin";
+        console.log('admin is created');
+      }else{
+        console.log('no match');
+
+      }
+  
     const createUserData = await userSchema.create(userData);
 
     const token = createToken({ id: createUserData._id });
 
-    if (req.body.role !== "admin") {
+ 
+    if (userData.role !== "admin") {
       /// notify the admin for account approval
       const approvalURL = `${req.protocol}://${req.get(
         "host"
@@ -96,16 +108,26 @@ exports.singUpUser = async (req, res, next) => {
 };
 
 exports.uploadUserImage = async (req, res) => {
+
   try {
     const imageFile = req.file;
     const decodedUserId = jwt.verify(req.params.id, process.env.JWT_SECRET_KEY);
+    const resizedImagePath = path.join(`Storage/${decodedUserId.id.id}/Images`,`resized${imageFile.filename}`);
+    
+
+    //this will rersize the image
+    await sharp(req.file.path).resize(500,500,{fit:"fill"}).toFormat('jpeg').jpeg({quality:90}).toFile(resizedImagePath);
+
+
+       // Rename the resized image file to overwrite the original image
+       await fs.promises.rename(resizedImagePath, imageFile.path);
+
 
     const avatarUrl = `${req.protocol}://${req.get("host")}/${imageFile.path}}`;
-    console.log(avatarUrl);
-
     const findUser = await userSchema.findByIdAndUpdate(decodedUserId.id.id, {
       imageLink: avatarUrl,
     });
+    
     await findUser.save({ validateBeforeSave: false });
 
     resHandler(res, 200, "Success", {
@@ -122,16 +144,36 @@ exports.uploadUserImage = async (req, res) => {
   }
 };
 
+exports.getApprovaldata = async(req,res) =>{
+  try{
+    const attentionAccount = await userSchema.find({isApproved:false});
+
+    if(!attentionAccount)
+    {
+      return resHandler(res, 200, "Failed", "No account to approve");
+    }
+
+    return resHandler(res, 200, "Success", {message:"Following accouts needs approval", attentionAccount});
+
+  }catch(err)
+  {
+    return resHandler(res, 400, "Failed", "Failed to get the data ", err.message);
+
+  }
+}
+
 exports.approveAccount = async (req, res) => {
-  const approvalEmail = req.params.id;
+  const approvalEmail = req.body.email;
   try {
     const approveEmail = await userSchema.findOneAndUpdate(
       { email: approvalEmail },
       { isApproved: true }
     );
-
     if (!approveEmail)
+    {
+
       return resHandler(res, 400, "Failed", "This user does not exits");
+    }
 
     resHandler(
       res,
@@ -158,6 +200,53 @@ exports.approveAccount = async (req, res) => {
     resHandler(res, 400, "Failed", "Failed to approve account " + err.message);
   }
 };
+
+
+exports.rejectAccount = async (req, res) => {
+  const approvalEmail = req.body.email;
+  try {
+    const rejectEmail = await userSchema.findOne(
+      { email: approvalEmail }
+    );
+
+    if (!rejectEmail)
+    {
+      return resHandler(res, 400, "Failed", "This user does not exits");
+    }
+    
+    await fs.promises.rm(`Storage/${rejectEmail.id}`, {
+      recursive: true,
+      force: true,
+    });
+
+    await userSchema.deleteOne({email:approvalEmail});
+
+    resHandler(
+      res,
+      200,
+      "Success",
+      `This email:${rejectEmail.email} has been deleted`
+    );
+
+    try {
+      await sendEmail({
+        to: approvalEmail,
+        subject: "Account Rejected",
+        text: "You account has been Rejected. Please contact the co-operation",
+      });
+    } catch (err) {
+      resHandler(
+        res,
+        400,
+        "Failed",
+        "Failed to nofity the user " + err.message
+      );
+    }
+  } catch (err) {
+    resHandler(res, 400, "Failed", "Failed to reject the account " + err.message);
+  }
+};
+
 
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
@@ -210,9 +299,7 @@ exports.verifyUser = async (req, res) => {
   try {
     const userLogIn = await userSchema.findOne({ email: req.body.email });
     //create OTP
-    const userInputOTP = req.body.OTP;
-    console.log(userInputOTP);
-    if (!userInputOTP) {
+    if (!req.body.OTP) {
       const OTP = userLogIn.createOneTimePasswordVerification();
       await userLogIn.save({ validateBeforeSave: false });
       try {
@@ -237,19 +324,28 @@ exports.verifyUser = async (req, res) => {
       );
     }
 
+
+    const userInputOTP = req.body.OTP.trim();
     //Verify OTP
     try {
-      const hashOTP = crypto
-        .createHash("sha256")
-        .update(userInputOTP)
-        .digest("hex");
+      const hashOTP =  crypto
+      .createHash("sha256")
+      .update(userInputOTP)
+      .digest("hex");
+
       // Check if the hashed OTP matches
-      if (hashOTP !== userLogIn.oneTimeVerificationToken) {
-        return resHandler(res, 400, "failed", "Invalid OTP");
+      if (userLogIn.oneTimeVerificationToken !== hashOTP) {
+   
+        return resHandler(res, 400, "failed", `Invalid OTP`);
       }
+
 
       // Check if the OTP is expired
       if (Date.now() > userLogIn.oneTimeVerificationTokenExpire) {
+        userLogIn.oneTimeVerificationToken = undefined;
+        userLogIn.oneTimeVerificationTokenExpire = undefined;
+        await userLogIn.save({ validateBeforeSave: false });
+
         return resHandler(res, 400, "failed", "Expired OTP");
       }
     } catch (err) {
@@ -280,13 +376,19 @@ exports.verifyUser = async (req, res) => {
     });
 
     */
+     if(userLogIn.role ==="admin")
+      return resHandler(res, 200, "Success", { message: "Admin Logged in", token , Role: userLogIn.role});
 
     resHandler(res, 200, "Success", { message: "Logged in", token });
 
-    userLogIn.oneTimeVerificationToken = null;
-    userLogIn.oneTimeVerificationTokenExpire = null;
+    userLogIn.oneTimeVerificationToken = undefined;
+    userLogIn.oneTimeVerificationTokenExpire = undefined;
     await userLogIn.save({ validateBeforeSave: false });
+
   } catch (err) {
+    userLogIn.oneTimeVerificationToken = undefined;
+    userLogIn.oneTimeVerificationTokenExpire = undefined;
+    await userLogIn.save({ validateBeforeSave: false });
     resHandler(res, 400, "failed", "Failed to verify the user " + err.message);
   }
 };
@@ -294,24 +396,30 @@ exports.verifyUser = async (req, res) => {
 exports.protect = async (req, res, next) => {
   let token; //= req.cookies.jwt;
   //console.log("cookies", req.cookies);
+  
   try {
     //doing this via cookies now
+    
+    
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer")
     ) {
       token = req.headers.authorization.split(" ")[1];
     }
-
+    
     if (!token) {
       return resHandler(res, 400, "Failed", "Not logged in ");
     }
-
+    
+    
     const decodedUserId = jwt.verify(token, process.env.JWT_SECRET_KEY);
-
+    
     const findUser = await userSchema.findById(decodedUserId.id.id);
 
     req.user = findUser;
+
+     
     if (!findUser) {
       return resHandler(res, 400, "Failed", "user does not exits");
     }
@@ -368,8 +476,8 @@ exports.forgotPassword = async (req, res) => {
       });
       resHandler(
         res,
-        201,
-        `A reset link has been sent to the ${identifyUser.email}`
+        201, "Success",
+        { message:`A reset link has been sent to the ${identifyUser.email}`,identifyUser}
       );
     } catch (err) {
       this.passwordResetToken = undefined;
@@ -384,21 +492,26 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
+    
+    const sixDigitCode = req.body.code;
     const hashPassword = crypto
       .createHash("sha256")
-      .update(req.params.id)
+      .update(sixDigitCode)
       .digest("hex");
 
     const findUser = await userSchema.findOne({
       passwordResetToken: hashPassword,
     });
 
-    console.log(hashPassword);
 
-    if (!findUser) return resHandler(res, 400, "Failed", "Invalid link");
+    if (!findUser) return resHandler(res, 400, "Failed", "Invalid Code");
 
     if (Date.now() > findUser.passwordResetExpire)
       return resHandler(res, 400, "Failed", "Token Expired");
+
+ if(req.body.password !== req.body.confirmPassword)
+  return resHandler(res, 400, "Failed", "Password didn't match");
+ 
 
     //reset the password
     findUser.password = req.body.password;
@@ -427,17 +540,21 @@ exports.resetPassword = async (req, res) => {
 
 exports.updatePassword = async (req, res) => {
   const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
   try {
     const userId = await userSchema.findOne({ _id: req.user.id });
 
     if (!userId) return resHandler(res, 400, "Failed", "user does not exits");
+
+
 
     const checkCurrentPassword = await userId.passwordMatch(
       currentPassword,
       userId.password
     );
 
-    if (!checkCurrentPassword)
+
+    if (checkCurrentPassword === false)
       return resHandler(res, 400, "Failed", "Current password is wrong");
 
     const passwordMatch = newPassword === confirmNewPassword;
@@ -448,7 +565,7 @@ exports.updatePassword = async (req, res) => {
     userId.password = newPassword;
     userId.passwordChangedAt = new Date();
     await userId.save({ validateBeforeSave: false });
-    resHandler(res, 200, "Success", "your Password have been updated");
+    resHandler(res, 200, "Success", "Your Password have been updated");
   } catch (err) {
     resHandler(
       res,

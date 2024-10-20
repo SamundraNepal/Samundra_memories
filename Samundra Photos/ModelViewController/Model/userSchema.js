@@ -10,7 +10,6 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, "Must have a password"],
-    select: false,
   },
   confirmPassword: {
     type: String,
@@ -23,13 +22,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ["admin", "user"],
     default: "user",
-    select: false,
   },
 
   isApproved: { type: Boolean, default: false },
 
-  oneTimeVerificationToken: { type: String, select: false },
-  oneTimeVerificationTokenExpire: { type: String, select: false },
+  oneTimeVerificationToken: { type: String },
+  oneTimeVerificationTokenExpire: { type: String },
 
   passwordResetToken: { type: String, select: false },
   passwordResetExpire: { type: String, select: false },
@@ -76,6 +74,7 @@ userSchema.methods.createOneTimePasswordVerification = function () {
     .createHash("sha256")
     .update(OTP)
     .digest("hex");
+
 
   this.oneTimeVerificationTokenExpire = Date.now() + 10 * 60 * 1000;
 
