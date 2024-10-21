@@ -23,7 +23,11 @@ const limiter = rateLimit({
 app.use('/v1', limiter);
 
 //set security HTTP Request
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginIsolated: false,
+  })
+);
 app.use(mongoSanitize()); // prevent no sql attacks
 
 //data sanitize
@@ -44,9 +48,6 @@ app.use(
     credentials: true, // Important for cookies
   })
 );
-
-//allows access to this path files
-app.use('/Storage', express.static(path.join(__dirname, 'Storage')));
 
 //allows access to this path files
 app.use('/Storage', express.static(path.join(__dirname, 'Storage')));
