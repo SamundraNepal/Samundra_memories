@@ -23,11 +23,7 @@ const limiter = rateLimit({
 app.use('/v1', limiter);
 
 //set security HTTP Request
-app.use(
-  helmet({
-    crossOriginIsolated: false,
-  })
-);
+//app.use(helmet());
 app.use(mongoSanitize()); // prevent no sql attacks
 
 //data sanitize
@@ -43,9 +39,8 @@ const userRoutes = require('./Routes/userRoute');
 
 app.use(
   cors({
-    origin: 'http://localhost:3000', // Allow requests from your frontend
+    origin: 'http://localhost:8000', // Allow requests from your frontend
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Specify allowed HTTP methods
-    credentials: true, // Important for cookies
   })
 );
 

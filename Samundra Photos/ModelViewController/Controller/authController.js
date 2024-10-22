@@ -309,7 +309,7 @@ exports.verifyUser = async (req, res) => {
   try {
     const userLogIn = await userSchema.findOne({ email: req.body.email });
 
-    // check if the token is still there
+    /*// check if the token is still there
     if (userLogIn.oneTimeVerificationTokenExpire != null) {
       if (Date.now() > userLogIn.oneTimeVerificationTokenExpire) {
         userLogIn.oneTimeVerificationToken = null;
@@ -317,7 +317,7 @@ exports.verifyUser = async (req, res) => {
       } else {
         return resHandler(res, 'Failed', 'Please log in back after 5 mins');
       }
-    }
+    }*/
     if (!req.body.OTP) {
       //create OTP
       const OTP = userLogIn.createOneTimePasswordVerification();
