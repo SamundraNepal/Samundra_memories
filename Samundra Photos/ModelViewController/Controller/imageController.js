@@ -133,7 +133,6 @@ exports.softDeleteImage = async (req, res) => {
 
     const imageId = req.params.id;
 
-    console.log(imageId);
     if (!imageId) {
       return resHandler(res, 400, 'Failed', 'Image ID is required');
     }
@@ -165,7 +164,15 @@ exports.getSoftDeletedImages = async (req, res) => {
     if (!deleteImages) {
       return resHandler(res, 400, 'Failed', 'Images does not exits');
     }
-    resHandler(res, 200, 'Success', { message: 'Image deleted', deleteImages });
+
+    const totalSize = deleteImages.reduce((acc, cur) => {
+      return acc + Number(cur.imageSize);
+    }, 0);
+    resHandler(res, 200, 'Success', {
+      message: 'Image deleted',
+      deleteImages,
+      totalSize,
+    });
   } catch (err) {
     resHandler(res, 400, 'Failed', 'Failed to get deleted images');
   }

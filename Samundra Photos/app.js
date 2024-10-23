@@ -7,7 +7,6 @@ var cookieParser = require('cookie-parser');
 
 //for security
 const rateLimit = require('express-rate-limit');
-const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 //Global
@@ -22,8 +21,6 @@ const limiter = rateLimit({
 });
 app.use('/v1', limiter);
 
-//set security HTTP Request
-//app.use(helmet());
 app.use(mongoSanitize()); // prevent no sql attacks
 
 //data sanitize
@@ -39,11 +36,11 @@ const userRoutes = require('./Routes/userRoute');
 
 app.use(
   cors({
-    origin: 'http://localhost:8000', // Allow requests from your frontend
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Specify allowed HTTP methods
+    origin: 'http://localhost:3000', // Your frontend's origin
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, // Allow cookies and credentials
   })
 );
-
 //allows access to this path files
 app.use('/Storage', express.static(path.join(__dirname, 'Storage')));
 

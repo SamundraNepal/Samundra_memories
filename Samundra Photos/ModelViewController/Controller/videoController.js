@@ -149,7 +149,15 @@ exports.getSoftDeletedVideos = async (req, res) => {
     if (!deleteVideos) {
       return resHandler(res, 400, 'Failed', 'Videos does not exits');
     }
-    resHandler(res, 200, 'Success', { message: 'Image deleted', deleteVideos });
+
+    const totalSize = deleteVideos.reduce((acc, cur) => {
+      return acc + Number(cur.videoFileSize);
+    }, 0);
+    resHandler(res, 200, 'Success', {
+      message: 'Image deleted',
+      deleteVideos,
+      totalSize,
+    });
   } catch (err) {
     resHandler(res, 400, 'Failed', 'Failed to get deleted Videos');
   }
