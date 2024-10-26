@@ -11,6 +11,8 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 //Global
 
+app.use(cors());
+
 //limit request
 const limiter = rateLimit({
   max: 100,
@@ -34,13 +36,6 @@ const imagesRoute = require('./Routes/imageRoute');
 const videosRoute = require('./Routes/videoRoute');
 const userRoutes = require('./Routes/userRoute');
 
-app.use(
-  cors({
-    origin: 'http://localhost:3000', // Your frontend's origin
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // Allow cookies and credentials
-  })
-);
 //allows access to this path files
 app.use('/Storage', express.static(path.join(__dirname, 'Storage')));
 

@@ -80,20 +80,33 @@ exports.getAllVideo = async (req, res) => {
 
     const stats = await createdUserVideoSchema.aggregate([
       {
-        $match: { isActive: true }, // Filter to only get documents with isactive true
+        $match: { isActive: true }, // Filter to only get documents with isActive true
       },
       {
         $addFields: {
-          dateOnly: { $substr: ['$dateTimeOriginal', 0, 15] },
+          // Use regex to extract the parts needed for a valid ISO date
+          parsedDate: {
+            $dateFromString: {
+              dateString: {
+                $substr: [
+                  '$dateTimeOriginal',
+                  0,
+                  24, // Extract the first 24 characters (this should cover "Thu Sep 19 2024 21:58:44")
+                ],
+              },
+            },
+          },
         },
       },
       {
         $group: {
-          _id: '$dateOnly',
+          _id: {
+            // Format the date as YYYY-MM-DD for grouping
+            $dateToString: { format: '%Y-%m-%d', date: '$parsedDate' },
+          },
           fileDatas: { $push: '$$ROOT' }, // Group items with the same date
         },
       },
-
       {
         $sort: { _id: -1 }, // Sort by _id (which is dateOnly) in descending order
       },

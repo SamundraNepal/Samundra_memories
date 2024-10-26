@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const image_Schema = new mongoose.Schema({
   imageName: { type: String, default: 'Memoreis' },
   imageURL: { type: String, default: 'missing' },
-
   imageSize: { type: String },
 
   backUpDate: { type: String, default: new Date() },
@@ -34,6 +33,7 @@ image_Schema.pre('save', function (next) {
 
   next();
 });
+
 const imageModel = function (userId) {
   return mongoose.model(`image_schema/${userId}`, image_Schema);
 };

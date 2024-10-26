@@ -54,6 +54,41 @@ exports.singUpUser = async (req, res, next) => {
       );
     }
 
+    const hasUppercase = /[A-Z]/.test(userData.password);
+    const hasLowercase = /[a-z]/.test(userData.password);
+    const hasNumber = /\d/.test(userData.password);
+    const uniqueSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(userData.password);
+
+    if (!hasUppercase) {
+      return resHandler(
+        res,
+        400,
+        'Failed',
+        'Password must have at least one Uppercase Letter'
+      );
+    } else if (!hasLowercase) {
+      return resHandler(
+        res,
+        400,
+        'Failed',
+        'Password must have at least one Lowercase Letter'
+      );
+    } else if (!hasNumber) {
+      return resHandler(
+        res,
+        400,
+        'Failed',
+        'Password must have at least one number'
+      );
+    } else if (!uniqueSymbol) {
+      return resHandler(
+        res,
+        400,
+        'Failed',
+        'Password must have at least one Unique Symbol'
+      );
+    }
+
     if (userData.password != userData.confirmPassword) {
       return resHandler(res, 400, 'Failed', 'Password does not match');
     }
