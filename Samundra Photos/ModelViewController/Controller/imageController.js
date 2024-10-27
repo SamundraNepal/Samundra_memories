@@ -2,6 +2,7 @@ const imageModel = require('../Model/imageSchema');
 const ExifReader = require('exifreader');
 const resHandler = require('../../Utils/Error Handler/errorHandler');
 const fs = require('fs');
+const { Base64Converter } = require('../../Utils/base64Converter');
 
 const readPhotoData = async function (req) {
   const tags = req.files.map(async (file) => {
@@ -46,6 +47,7 @@ const readImageMetaData = async function (req) {
       imageURL: `${req.protocol}://${req.get('host')}/${file.destination}/${
         file.filename
       }`,
+      imageBase64: await Base64Converter(file.path),
     };
   });
 
@@ -69,6 +71,7 @@ exports.createImage = async (req, res) => {
 
     // Database Created
     const createData = await userRelatedImageSchema.create(imageMetaData);
+
     resHandler(res, 200, 'Success', { result: createData });
   } catch (err) {
     resHandler(res, 400, 'Failed', 'Failed to upload image ' + err.message);

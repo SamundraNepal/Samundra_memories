@@ -6,6 +6,7 @@ const { type } = require('os');
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: [true, 'Must have First name'] },
   lastName: { type: String, required: [true, 'Must have Last name'] },
+  strorage: { type: String, default: '1GB' },
   imageLink: { type: String, default: 'missing' },
   accountCreatedDate: { type: String, default: new Date() },
   password: {

@@ -1,8 +1,10 @@
+const { type } = require('express/lib/response');
 const mongoose = require('mongoose');
 
 const image_Schema = new mongoose.Schema({
   imageName: { type: String, default: 'Memoreis' },
   imageURL: { type: String, default: 'missing' },
+  imageBase64: { type: String, default: null },
   imageSize: { type: String },
 
   backUpDate: { type: String, default: new Date() },
