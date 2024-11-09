@@ -4,10 +4,14 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const sharp = require('sharp');
+const bcrypt = require('bcrypt');
+
+const imageSchema = require('../Model/imageSchema');
 
 //inheritance
 const sendEmail = require('../../Utils/emailHandler');
 const resHandler = require('../../Utils/Error Handler/errorHandler');
+const videoModel = require('../Model/videosSchema');
 
 const createToken = function (id) {
   return (token = jwt.sign({ id: id }, process.env.JWT_SECRET_KEY, {
@@ -604,10 +608,10 @@ exports.updatePassword = async (req, res) => {
 
     const passwordMatch = newPassword === confirmNewPassword;
 
-    const hasUppercase = /[A-Z]/.test(userData.password);
-    const hasLowercase = /[a-z]/.test(userData.password);
-    const hasNumber = /\d/.test(userData.password);
-    const uniqueSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(userData.password);
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasNumber = /\d/.test(newPassword);
+    const uniqueSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
     if (!hasUppercase) {
       return resHandler(
@@ -651,7 +655,349 @@ exports.updatePassword = async (req, res) => {
       res,
       400,
       'Failed',
-      'Failed to update the paassword ' + err.message
+      'Failed to update the password ' + err.message
     );
   }
 };
+
+//for albums
+exports.createPhotoAlbum = async (req, res) => {
+  try {
+    const albumName = req.body.albumName;
+
+    if (!albumName)
+      return resHandler(res, 400, 'Failed', {
+        message: 'Invalid Name',
+      });
+
+    if (req.params.id === 'Photo') {
+      const addAlbum = await userSchema.findOneAndUpdate(
+        {
+          _id: req.user.id,
+        },
+        { $push: { photoAlbums: albumName } }
+      );
+
+      if (!addAlbum) {
+        return resHandler(res, 400, 'failed', {
+          message: 'Album cannot be created ',
+        });
+      }
+    } else {
+      const addAlbum = await userSchema.findOneAndUpdate(
+        {
+          _id: req.user.id,
+        },
+        { $addToSet: { videoAlbums: albumName } }
+      );
+
+      if (!addAlbum) {
+        return resHandler(res, 400, 'failed', {
+          message: 'Album cannot be created ',
+        });
+      }
+    }
+    resHandler(res, 200, 'Success', `${albumName} have been created`);
+  } catch (err) {
+    resHandler(res, 400, 'Failed', 'Failed to create album ' + err.message);
+  }
+};
+
+exports.updatePhotoAlbum = async (req, res) => {
+  const { albumName, prevAlnumName } = req.body;
+  try {
+    if (!albumName)
+      return resHandler(res, 400, 'Failed', {
+        message: 'Invalid Name',
+      });
+
+    // find the album with its name and update
+    const addAlbum = await userSchema.findOneAndUpdate(
+      {
+        photoAlbums: prevAlnumName,
+      },
+      { $set: { 'photoAlbums.$': albumName } }
+    );
+
+    if (!addAlbum) {
+      return resHandler(res, 400, 'failed', {
+        message: 'Album cannot be updated ',
+      });
+    }
+
+    // if the name is updated also update the images inside of it with new album name
+    const findImageSchema = await imageSchema(req.user.id);
+    const updateTheImages = await findImageSchema.updateMany(
+      { photoAlbums: prevAlnumName },
+      { $set: { photoAlbums: albumName } }
+    );
+
+    resHandler(res, 200, 'Success', `${updateTheImages} have been updated`);
+  } catch (err) {
+    resHandler(res, 400, 'Failed', 'Failed to create album ' + err.message);
+  }
+};
+
+exports.deletePhotoAlbum = async (req, res) => {
+  const { prevAlnumName } = req.body;
+  try {
+    if (!prevAlnumName)
+      return resHandler(res, 400, 'Failed', {
+        message: 'Invalid Name',
+      });
+
+    // find the album with its name and delete
+    const deleteAlbum = await userSchema.findOneAndUpdate(
+      { photoAlbums: prevAlnumName },
+      {
+        $pull: { photoAlbums: prevAlnumName },
+      }
+    );
+
+    if (!deleteAlbum) {
+      return resHandler(res, 400, 'failed', {
+        message: 'Album cannot be deleted ',
+      });
+    }
+
+    //this will also delete the user locked album as well
+
+    const findLockedAlbum = await userSchema.findOne({
+      'lockedAlbums.albumName': prevAlnumName,
+    });
+
+    if (!findLockedAlbum) {
+      console.log('This album is not locked yet');
+    } else {
+      const result = await userSchema.updateOne(
+        { _id: findLockedAlbum._id }, // Find the user document by its _id
+        { $pull: { lockedAlbums: { albumName: prevAlnumName } } } // Pull the album from lockedAlbums array
+      );
+    }
+
+    // if the name is updated also update the images inside of it with new album name
+    const findImageSchema = await imageSchema(req.user.id);
+    if (findImageSchema) {
+      await findImageSchema.updateMany(
+        { photoAlbums: prevAlnumName, isActive: true },
+        { $set: { photoAlbums: [], isActive: false } }
+      );
+    } else {
+      resHandler(res, 200, 'Success', ` Empty album been deleted`);
+    }
+
+    resHandler(res, 200, 'Success', `${prevAlnumName} have been deleted`);
+  } catch (err) {
+    resHandler(res, 400, 'Failed', 'Failed to delete album ' + err.message);
+  }
+};
+
+exports.updateVideoAlbum = async (req, res) => {
+  const { albumName, prevAlnumName } = req.body;
+  try {
+    if (!albumName)
+      return resHandler(res, 400, 'Failed', {
+        message: 'Invalid Name',
+      });
+
+    // find the album with its name and update
+    const addAlbum = await userSchema.findOneAndUpdate(
+      {
+        videoAlbums: prevAlnumName,
+      },
+      { $set: { 'videoAlbums.$': albumName } }
+    );
+
+    if (!addAlbum) {
+      return resHandler(res, 400, 'failed', {
+        message: 'Album cannot be updated ',
+      });
+    }
+
+    // if the name is updated also update the images inside of it with new album name
+    const findVideoSchema = await videoModel(req.user.id);
+    const updateTheVidoes = await findVideoSchema.updateMany(
+      { videoAlbums: prevAlnumName },
+      { $set: { videoAlbums: albumName } }
+    );
+
+    resHandler(res, 200, 'Success', `${updateTheVidoes} have been updated`);
+  } catch (err) {
+    resHandler(res, 400, 'Failed', 'Failed to update the album ' + err.message);
+  }
+};
+
+exports.deleteVideoAlbum = async (req, res) => {
+  const { prevAlnumName } = req.body;
+  try {
+    if (!prevAlnumName)
+      return resHandler(res, 400, 'Failed', {
+        message: 'Invalid Name',
+      });
+
+    // find the album with its name and delete
+    const deleteAlbum = await userSchema.findOneAndUpdate(
+      { videoAlbums: prevAlnumName },
+      {
+        $pull: { videoAlbums: prevAlnumName },
+      }
+    );
+
+    if (!deleteAlbum) {
+      return resHandler(res, 400, 'failed', {
+        message: 'Album cannot be deleted ',
+      });
+    }
+
+    const findLockedAlbum = await userSchema.findOne({
+      'lockedAlbums.albumName': prevAlnumName,
+    });
+
+    if (!findLockedAlbum) {
+      console.log('This album is not locked yet');
+    } else {
+      const result = await userSchema.updateOne(
+        { _id: findLockedAlbum._id }, // Find the user document by its _id
+        { $pull: { lockedAlbums: { albumName: prevAlnumName } } } // Pull the album from lockedAlbums array
+      );
+    }
+
+    // if the name is updated also update the images inside of it with new album name
+    const findVideoSchema = await videoModel(req.user.id);
+
+    if (findVideoSchema) {
+      const updateTheImages = await findVideoSchema.updateMany(
+        { videoAlbums: prevAlnumName, isActive: true },
+        { $set: { videoAlbums: [], isActive: false } }
+      );
+    } else {
+      resHandler(res, 200, 'Success', ` Empty album been deleted`);
+    }
+
+    resHandler(res, 200, 'Success', `${prevAlnumName} have been deleted`);
+  } catch (err) {
+    resHandler(res, 400, 'Failed', 'Failed to delete album ' + err.message);
+  }
+};
+
+exports.addAlbumPassword = async (req, res) => {
+  const { password, confirmPassword, albName } = req.body;
+
+  try {
+    if (password != confirmPassword) {
+      return resHandler(res, 400, 'Failed', `Password does not match`);
+    }
+    if (password.length < 4) {
+      return resHandler(
+        res,
+        400,
+        'Failed',
+        `Password must be longer that 4 digits`
+      );
+    }
+
+    //this encrypt the password in the database
+    const hashPassword = await bcrypt.hash(password, 12);
+
+    const newAlbumname = [
+      {
+        albumName: albName,
+        isLocked: true,
+        albumPassword: hashPassword,
+      },
+    ];
+
+    const findUser = await userSchema.findByIdAndUpdate(req.user.id, {
+      $push: { lockedAlbums: newAlbumname },
+    });
+
+    resHandler(res, 200, 'Success', `Password have been added`);
+  } catch (err) {
+    resHandler(
+      res,
+      400,
+      'Failed',
+      'Failed to add password to album ' + err.message
+    );
+  }
+};
+
+exports.albumLogIn = async (req, res) => {
+  const { password, albName } = req.body;
+  try {
+    const findLockedAlbum = await userSchema.findOne({
+      'lockedAlbums.albumName': albName,
+    });
+
+    // Find the specific locked album
+    const lockedAlbum = findLockedAlbum.lockedAlbums.find(
+      (album) => album.albumName === albName && album.isLocked
+    );
+
+    const passwordMatch = await bcrypt.compare(
+      password,
+      lockedAlbum.albumPassword
+    );
+
+    if (passwordMatch) {
+      return resHandler(res, 200, 'Success', `Authrozied user`);
+    } else {
+      return resHandler(res, 400, 'Success', `Invalid Password`);
+    }
+  } catch (err) {
+    console.log(err.message);
+  }
+};
+
+exports.albumPasswordRemoval = async (req, res) => {
+  const { password, albName } = req.body;
+  try {
+    const findLockedAlbum = await userSchema.findOne({
+      'lockedAlbums.albumName': albName,
+    });
+
+    if (!findLockedAlbum) {
+      return resHandler(res, 400, 'Failed', `Album does not exits`);
+    }
+
+    // Find the specific locked album
+    const lockedAlbum = findLockedAlbum.lockedAlbums.find(
+      (album) => album.albumName === albName && album.isLocked
+    );
+
+    const passwordMatch = await bcrypt.compare(
+      password,
+      lockedAlbum.albumPassword
+    );
+
+    if (passwordMatch) {
+      // Password matched, remove the album from the lockedAlbums array
+      const result = await userSchema.updateOne(
+        { _id: findLockedAlbum._id }, // Find the user document by its _id
+        { $pull: { lockedAlbums: { albumName: albName } } } // Pull the album from lockedAlbums array
+      );
+
+      return resHandler(res, 200, 'Success', `Password locked Removed`);
+    } else {
+      return resHandler(res, 400, 'failed', `Invalid Password`);
+    }
+  } catch (err) {
+    console.log(err.message);
+  }
+};
+
+//we use this for the missing value addding in it
+async function updateMissingValue() {
+  try {
+    const result = await userSchema.updateMany(
+      {
+        videoAlbums: { $exists: false },
+      },
+      { $set: { videoAlbums: [] } }
+    );
+
+    console.log(`${result} have been updated`);
+  } catch (err) {
+    console.log('failed to updated ' + err.message);
+  }
+}

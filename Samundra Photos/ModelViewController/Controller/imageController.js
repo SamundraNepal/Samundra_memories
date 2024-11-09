@@ -48,6 +48,7 @@ const readImageMetaData = async function (req) {
         file.filename
       }`,
       imageBase64: await Base64Converter(file.path),
+      photoAlbums: req.body?.albumName || [],
     };
   });
 
@@ -80,11 +81,12 @@ exports.createImage = async (req, res) => {
 
 exports.getAllImage = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 0;
-    const limit = parseInt(req.query.limit) || 20;
     const createdUserImageSchema = imageModel(req.user.id);
 
-    const imagedata = await createdUserImageSchema.find({ isActive: true });
+    const imagedata = await createdUserImageSchema.find({
+      isActive: true,
+      photoAlbums: { $size: 0 }, // Find documents where photoAlbums is an empty array
+    });
 
     if (imagedata.length < 1) {
       return resHandler(res, 200, 'Success', 'No data avaliable');
@@ -97,7 +99,7 @@ exports.getAllImage = async (req, res) => {
 
     const stats = await createdUserImageSchema.aggregate([
       {
-        $match: { isActive: true }, // Filter to only get documents with isActive true
+        $match: { isActive: true, photoAlbums: { $size: 0 } }, // Filter to only get documents with isActive true
       },
       {
         $addFields: {
@@ -158,6 +160,7 @@ exports.softDeleteImage = async (req, res) => {
       imageId,
       {
         isActive: false,
+        $set: { photoAlbums: [] },
       }
     );
 
@@ -255,3 +258,164 @@ exports.restoreImage = async (req, res) => {
     resHandler(res, 400, 'Failed', 'Failed to restore the image');
   }
 };
+
+//Album handle
+exports.getAlbumImage = async (req, res) => {
+  try {
+    const createdUserImageSchema = await imageModel(req.user.id);
+
+    const imagedata = await createdUserImageSchema.find({
+      isActive: true,
+      photoAlbums: req.body.albumName,
+    });
+
+    if (imagedata.length < 1) {
+      return resHandler(res, 200, 'Success', 'No data avaliable');
+    }
+
+    // Corrected reduce function
+    const totalSize = imagedata.reduce((acc, cur) => {
+      return acc + Number(cur.imageSize); // Ensure cur.imageSize is a number
+    }, 0);
+
+    const stats = await createdUserImageSchema.aggregate([
+      {
+        $match: { isActive: true, photoAlbums: req.body.albumName }, // Filter to only get documents with isActive true
+      },
+      {
+        $addFields: {
+          // Use regex to extract the parts needed for a valid ISO date
+          parsedDate: {
+            $dateFromString: {
+              dateString: {
+                $substr: [
+                  '$dateTimeOriginal',
+                  0,
+                  24, // Extract the first 24 characters (this should cover "Thu Sep 19 2024 21:58:44")
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            // Format the date as YYYY-MM-DD for grouping
+            $dateToString: { format: '%Y-%m-%d', date: '$parsedDate' },
+          },
+          fileDatas: { $push: '$$ROOT' }, // Group items with the same date
+        },
+      },
+      {
+        $sort: { _id: -1 }, // Sort by _id (which is dateOnly) in descending order
+      },
+    ]);
+
+    resHandler(res, 200, 'Success', {
+      total: imagedata.length,
+      result: stats,
+      totalSize,
+    });
+  } catch (err) {
+    resHandler(
+      res,
+      400,
+      'Failed',
+      'Failed to get image metadata ' + err.message
+    );
+  }
+};
+
+exports.addImageToAlbum = async (req, res) => {
+  try {
+    const AlbumName = req.body.imageToAlbumName;
+    const id = req.params.id;
+    const createdUserImageSchema = imageModel(req.user.id);
+
+    const imagedata = await createdUserImageSchema.updateMany(
+      {
+        _id: id,
+        photoAlbums: { $size: 0 },
+      },
+      {
+        $set: { photoAlbums: AlbumName }, // Correct syntax for $set
+      }
+    );
+
+    if (!imagedata) {
+      return resHandler(res, 400, 'failed', 'Already in album ');
+    }
+
+    resHandler(res, 200, 'Success', {
+      result: `${id} have been updated to ${AlbumName}`,
+    });
+  } catch (err) {
+    resHandler(
+      res,
+      400,
+      'Failed',
+      'Failed to add to the album    ' + err.message
+    );
+  }
+};
+
+exports.removeImageFromAlbum = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const createdUserImageSchema = imageModel(req.user.id);
+
+    const imagedata = await createdUserImageSchema.updateMany(
+      {
+        _id: id,
+      },
+      {
+        $set: { photoAlbums: [] }, // Correct syntax for $set
+      }
+    );
+
+    if (!imagedata) {
+      return resHandler(res, 400, 'failed', 'Already in album ');
+    }
+
+    resHandler(res, 200, 'Success', {
+      result: `${id} have been removed`,
+    });
+  } catch (err) {
+    resHandler(
+      res,
+      400,
+      'Failed',
+      'Failed to remove to the album    ' + err.message
+    );
+  }
+};
+
+async function updateMissingValue() {
+  try {
+    const createdUserImageSchema = imageModel('671e37bae42b013510d77f4fs');
+
+    const result = await createdUserImageSchema.updateMany(
+      {
+        lockedAlbums: { $exists: false },
+      },
+      {
+        $set: {
+          lockedAlbums: [
+            {
+              albumName: '',
+              isLocked: false,
+              albumPassword: '',
+            },
+          ],
+        },
+      }
+    );
+
+    console.log(`${result.modifiedCount} documents have been updated`);
+  } catch (err) {
+    console.log('Failed to update: ' + err.message);
+  }
+}
+
+updateMissingValue();

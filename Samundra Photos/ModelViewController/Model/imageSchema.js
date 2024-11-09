@@ -6,7 +6,6 @@ const image_Schema = new mongoose.Schema({
   imageURL: { type: String, default: 'missing' },
   imageBase64: { type: String, default: null },
   imageSize: { type: String },
-
   backUpDate: { type: String, default: new Date() },
 
   make: { type: String, default: 'Memoreis.SAM' },
@@ -27,6 +26,7 @@ const image_Schema = new mongoose.Schema({
   gPSAltitudeRef: { type: String, default: 'Missing' },
   gPSAltitude: { type: [[String]], default: ['0000', '0000'] },
 
+  photoAlbums: { type: [String], default: [] },
   isActive: { type: Boolean, default: true },
 });
 

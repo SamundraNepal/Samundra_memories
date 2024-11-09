@@ -6,8 +6,12 @@ const { type } = require('os');
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: [true, 'Must have First name'] },
   lastName: { type: String, required: [true, 'Must have Last name'] },
-  strorage: { type: String, default: '1GB' },
+  storage: { type: String, default: '1GB' },
   imageLink: { type: String, default: 'missing' },
+
+  photoAlbums: { type: [String], default: [] },
+  videoAlbums: { type: [String], default: [] },
+
   accountCreatedDate: { type: String, default: new Date() },
   password: {
     type: String,
@@ -26,6 +30,31 @@ const userSchema = new mongoose.Schema({
     default: 'user',
   },
 
+  lockedAlbums: {
+    type: [
+      {
+        albumName: {
+          type: String,
+          default: '',
+        },
+        isLocked: {
+          type: Boolean,
+          default: false,
+        },
+        albumPassword: {
+          type: String,
+          default: '',
+        },
+      },
+    ],
+    default: [
+      {
+        albumName: '',
+        isLocked: false,
+        albumPassword: '',
+      },
+    ],
+  },
   isApproved: { type: Boolean, default: false },
 
   oneTimeVerificationToken: { type: String },

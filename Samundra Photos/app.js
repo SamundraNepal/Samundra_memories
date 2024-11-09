@@ -15,7 +15,7 @@ app.use(cors());
 
 //limit request
 const limiter = rateLimit({
-  max: 100,
+  max: 1000,
   windowMs: 60 * 60 * 100, //1 hrs request limit
 
   message:
@@ -31,6 +31,7 @@ app.use(xss());
 app.use(cookieParser());
 
 app.use(express.json()); // Middleware to parse incoming JSON bodies
+
 //inheritance files
 const imagesRoute = require('./Routes/imageRoute');
 const videosRoute = require('./Routes/videoRoute');

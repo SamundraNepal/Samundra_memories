@@ -34,4 +34,17 @@ router
   .route('/hardDeleteImage/:id')
   .delete(authController.protect, imageController.hardDeleteImage);
 
+//All albums
+router
+  .route('/albumImage')
+  .post(authController.protect, imageController.getAlbumImage);
+
+router
+  .route('/addAlbumToImage/:id')
+  .patch(authController.protect, imageController.addImageToAlbum);
+
+router
+  .route('/removeAlbumToImage/:id')
+  .patch(authController.protect, imageController.removeImageFromAlbum);
+
 module.exports = router;

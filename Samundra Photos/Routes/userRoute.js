@@ -58,4 +58,38 @@ router.route('/user/forgotPassword').post(authController.forgotPassword);
 
 router.route('/resetPassword/:id').post(authController.resetPassword);
 
+//photo albums
+router
+  .route('/user/addAlbum/:id')
+  .patch(authController.protect, authController.createPhotoAlbum);
+
+router
+  .route('/user/updateAlbum/photo')
+  .patch(authController.protect, authController.updatePhotoAlbum);
+
+router
+  .route('/user/deleteAlbum/photo')
+  .patch(authController.protect, authController.deletePhotoAlbum);
+
+//video album
+router
+  .route('/user/updateAlbum/video')
+  .patch(authController.protect, authController.updateVideoAlbum);
+
+router
+  .route('/user/deleteAlbum/video')
+  .patch(authController.protect, authController.deleteVideoAlbum);
+
+router
+  .route('/user/album/addAlbumPassword')
+  .post(authController.protect, authController.addAlbumPassword);
+
+router
+  .route('/user/album/openAlbumLocked')
+  .post(authController.protect, authController.albumLogIn);
+
+router
+  .route('/user/album/RemoveAlbumLocked')
+  .patch(authController.protect, authController.albumPasswordRemoval);
+
 module.exports = router;

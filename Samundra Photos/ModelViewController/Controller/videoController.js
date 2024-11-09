@@ -32,22 +32,23 @@ const readVideoMetaData = async function (req) {
     gPSLatitudeAndLongitude: data?.GPSCoordinates,
   }));
 
-  const imageDataProcessing = req.files.map(async (file) => {
+  const videoDataProcessing = req.files.map(async (file) => {
     return {
       viodeoName: file.filename,
       videoFileSize: file.size,
       videoURL: `${req.protocol}://${req.get('host')}/${file.destination}/${
         file.filename
       }`,
+      videoAlbums: req.body?.albumName || [],
     };
   });
 
-  const processedImageData = await Promise.all(imageDataProcessing);
+  const processedvideoData = await Promise.all(videoDataProcessing);
 
   const processedVideoMetaData = await Promise.all(processingVideoMetaData);
 
-  return (combinedData = processedImageData.map((imageData, index) => ({
-    ...imageData,
+  return (combinedData = processedvideoData.map((videoData, index) => ({
+    ...videoData,
     ...processedVideoMetaData[index],
   })));
 };
@@ -69,7 +70,10 @@ exports.getAllVideo = async (req, res) => {
   try {
     const createdUserVideoSchema = await video_Schema(req.user.id);
 
-    const videodata = await createdUserVideoSchema.find({ isActive: true });
+    const videodata = await createdUserVideoSchema.find({
+      isActive: true,
+      videoAlbums: { $size: 0 }, // Find documents where photoAlbums is an empty array
+    });
     if (videodata.length < 1) {
       return resHandler(res, 200, 'Success', 'No data avaliable');
     }
@@ -80,7 +84,10 @@ exports.getAllVideo = async (req, res) => {
 
     const stats = await createdUserVideoSchema.aggregate([
       {
-        $match: { isActive: true }, // Filter to only get documents with isActive true
+        $match: {
+          isActive: true,
+          videoAlbums: { $size: 0 }, // Find documents where photoAlbums is an empty array
+        }, // Filter to only get documents with isActive true
       },
       {
         $addFields: {
@@ -136,6 +143,7 @@ exports.softDeleteVideo = async (req, res) => {
       videoId,
       {
         isActive: false,
+        $set: { videoAlbums: [] },
       }
     );
 
@@ -238,5 +246,140 @@ exports.restoreVideo = async (req, res) => {
     resHandler(res, 200, 'Success', 'Video ID is restored');
   } catch (err) {
     resHandler(res, 400, 'Failed', 'Video ID is not restore ' + err.message);
+  }
+};
+
+//Album handler
+exports.getAlbumVideo = async (req, res) => {
+  try {
+    const createdUserVideoSchema = await video_Schema(req.user.id);
+
+    const videoData = await createdUserVideoSchema.find({
+      isActive: true,
+      videoAlbums: req.body.albumName,
+    });
+
+    if (videoData.length <= 0) {
+      return resHandler(res, 200, 'Success', 'No data avaliable');
+    }
+
+    // Corrected reduce function
+    const totalSize = videoData.reduce((acc, cur) => {
+      return acc + Number(cur.imageSize); // Ensure cur.imageSize is a number
+    }, 0);
+
+    const stats = await createdUserVideoSchema.aggregate([
+      {
+        $match: { isActive: true, videoAlbums: req.body.albumName }, // Filter to only get documents with isActive true
+      },
+      {
+        $addFields: {
+          // Use regex to extract the parts needed for a valid ISO date
+          parsedDate: {
+            $dateFromString: {
+              dateString: {
+                $substr: [
+                  '$dateTimeOriginal',
+                  0,
+                  24, // Extract the first 24 characters (this should cover "Thu Sep 19 2024 21:58:44")
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            // Format the date as YYYY-MM-DD for grouping
+            $dateToString: { format: '%Y-%m-%d', date: '$parsedDate' },
+          },
+          fileDatas: { $push: '$$ROOT' }, // Group items with the same date
+        },
+      },
+      {
+        $sort: { _id: -1 }, // Sort by _id (which is dateOnly) in descending order
+      },
+    ]);
+
+    resHandler(res, 200, 'Success', {
+      total: videoData.length,
+      result: stats,
+      totalSize,
+    });
+  } catch (err) {
+    resHandler(
+      res,
+      400,
+      'Failed',
+      'Failed to get image metadata ' + err.message
+    );
+  }
+};
+
+//add videos to album
+
+exports.addVideoToAlbum = async (req, res) => {
+  try {
+    const AlbumName = req.body.imageToAlbumName;
+    const id = req.params.id;
+    const createdVideoSchema = video_Schema(req.user.id);
+
+    const imagedata = await createdVideoSchema.updateMany(
+      {
+        _id: id,
+        videoAlbums: { $size: 0 },
+      },
+      {
+        $set: { videoAlbums: AlbumName }, // Correct syntax for $set
+      }
+    );
+
+    if (!imagedata) {
+      return resHandler(res, 400, 'failed', 'Already in album');
+    }
+
+    resHandler(res, 200, 'Success', {
+      result: `${id} have been updated to ${AlbumName}`,
+    });
+  } catch (err) {
+    resHandler(
+      res,
+      400,
+      'Failed',
+      'Failed to add to the album    ' + err.message
+    );
+  }
+};
+
+//remove videos from the album
+exports.removeVideosFromAlbum = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const createdUserVideoSchema = video_Schema(req.user.id);
+
+    const imagedata = await createdUserVideoSchema.updateMany(
+      {
+        _id: id,
+      },
+      {
+        $set: { videoAlbums: [] }, // Correct syntax for $set
+      }
+    );
+
+    if (!imagedata) {
+      return resHandler(res, 400, 'failed', 'Already in album ');
+    }
+
+    resHandler(res, 200, 'Success', {
+      result: `${id} have been removed`,
+    });
+  } catch (err) {
+    resHandler(
+      res,
+      400,
+      'Failed',
+      'Failed to remove to the album    ' + err.message
+    );
   }
 };

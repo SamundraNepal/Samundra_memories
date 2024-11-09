@@ -34,4 +34,17 @@ router
   .route('/hardDeleteVideo/:id')
   .delete(authController.protect, videoController.hardDeleteVideo);
 
+//All albums
+router
+  .route('/albumVideo')
+  .post(authController.protect, videoController.getAlbumVideo);
+
+router
+  .route('/addVideoToAlbum/:id')
+  .patch(authController.protect, videoController.addVideoToAlbum);
+
+router
+  .route('/removeVideoFromAlbum/:id')
+  .patch(authController.protect, videoController.removeVideosFromAlbum);
+
 module.exports = router;

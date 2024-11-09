@@ -22,6 +22,8 @@ const video_Schema = new mongoose.Schema({
 
   videoFileSize: { type: String, default: 'Missing' },
 
+  videoAlbums: { type: [String], default: [] },
+
   isActive: { type: Boolean, default: true, select: false },
 });
 

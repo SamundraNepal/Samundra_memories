@@ -18,13 +18,13 @@ const multerFilter = (req, file, cb) => {
 
 const upload = multer({ storage: storage, fileFilter: multerFilter }).array(
   'files',
-  50
+  50000
 );
 
 // Middleware to handle file count
 exports.videoUpload = (req, res, next) => {
   upload(req, res, (err) => {
-    if (req.files.length > 50) {
+    if (req.files.length > 50000) {
       return res
         .status(400)
         .json({ status: 'Failed', message: 'Too much files upload at once' });
